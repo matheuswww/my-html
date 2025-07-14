@@ -1,12 +1,4 @@
 /* tokens.h */
-
-struct s_string {
-  int16 length;
-  int8 *cur;
-  int8 data[];
-};
-typedef struct s_string String;
-
 typedef unsigned char int8;
 typedef unsigned short int int16;
 typedef unsigned int int32;
@@ -41,6 +33,12 @@ struct s_selfclosed {
 };
 typedef struct s_selfclosed Selfclosed;
 
+struct s_texttoken {
+  Tag type;
+  int8 value[];
+};
+typedef struct s_texttoken Text;
+
 enum e_tokentype {
   text = 1,
   tagstart = 2,
@@ -48,8 +46,6 @@ enum e_tokentype {
   selfclosed = 4
 };
 typedef enum e_tokentype Tokentype;
-
-typedef String text;
 
 struct s_token {
   Tokentype type;
@@ -67,3 +63,6 @@ struct s_tokens {
   Token *ts;
 };
 typedef struct s_tokens Tokens;
+
+int8 *showtoken(Token);
+int8 * showtokens(Tokens);

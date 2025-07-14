@@ -6,9 +6,8 @@
 #include <stdbool.h>
 #include <assert.h>
 #include <errno.h>
-#include "tokens.h"
+#include "utils.h"
 
-// immutable variable
 struct s_string {
   int16 length;
   int8 *cur;
@@ -34,3 +33,13 @@ typedef unsigned long long int int64;
 #define $c (char *)
 #define $i (int)
 
+#define sdestroy(s) free(s)
+
+// constructor funcions
+String *mkstring(int8*);
+
+String *scopy(String *s);
+Tuple get(String*);
+int16 stringlen(int8*);
+void stringcopy(int8*, int8*, int16);
+int main(int,char**);
