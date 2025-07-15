@@ -2,8 +2,52 @@
 #include "myhtml.h"
 #include "tokens.h"
 
-int8 *showtoken(Token) {
+int8 *showtokens(Tokens ts) {
+    int8 *p, *cur;
+    static int8 buf[20480];
+    int16 total, n, i;
+    Token *t;
+
+    total = 0;
+    cur = buf;
+    zero(buf, sizeof(buf));
+
+    for (i=ts.length, t=ts.ts; i; i--, t++) {
+        p = showtoken(*t);
+        if (!p)
+            break;
+        if (!(*p)) 
+            continue;
+            
+        n = stringlen(p);
+        total += n;
+        if (total >= sizeof(buf)) {
+            break;
+        }
+        stringcopy(cur, p, n);
+        cur += n;
+    }
+
+    return buf;
+}
+
+int8 *showtoken(Token t) {
     int8 *ret;
+    static int8 tmp[256];
+
+    assert(t.type);
+
+    ret = tmp;
+    zero(tmp, 256);
+    switch(t.type) {
+        case text:       snprintf($c tmp, 255, "%s", t.contents.texttoken->value); break;
+        case tagstart:   snprintf($c tmp, 255, "<%s>", t.contents.start->value); break;
+        case tagend:     snprintf($c tmp, 255, "</%s>", t.contents.end->value); break;
+        case selfclosed: snprintf($c tmp, 255, "<%s />", t.contents.self->value); break;
+        default: break;
+    }
+
+    return ret;
 }
 
 /*
@@ -108,19 +152,135 @@ String *mkstring(int8 *str) {
     return p;
 }
 
-int main(int argc, char *argv[]) {
-    Tuple t;
-    String *s;
-    int8 c;
-
-    s = mkstring($1 "Hello world");
-    t = get(s);
-    if(!t.c) {
-        printf("err\n");
-        return -1;
+Token *mktoken(Tokentype type, int8 *value) {
+    switch (type) {
+        case text: return mktext(value);
+        case tagstart: return mktagstart(value);
+        case tagend: return mktagend(value);
+        case selfclosed: return mkselfclosed(value);
+        default:
+            fprintf(stderr, "mktoken(): bad input\n");
+            exit(-1);
+            
+            break;
     }
-    c = t.c;
 
-    printf("c = '%c'\nnew = '%s'\n", c, t.s->cur);
+    return (Token *)0;
+}
+
+Token *mktagstart(int8 *value) {
+    int16 msize, size;
+    Tagstart *p;
+    
+    size = stringlen(value);
+    msize = sizeof(struct s_tagstart) + size;
+    p = (Tagstart *)malloc($i msize);
+    assert(p);
+
+    zero($1 p, msize);
+    stringcopy(p->value, $1 value, msize);
+    
+    static Token html = { 
+        .type = tagstart,
+    };
+    html.contents.start = p;
+
+    return (Token *)&html;
+}
+
+
+Token *mktagend(int8 *value) {
+    int16 size, msize;
+    Tagend *p;
+    
+    size = stringlen(value);
+    msize = sizeof(struct s_tagend) + size;
+    p = (Tagend *)malloc($i msize);
+    assert(p);
+
+    zero($1 p, sizeof(struct s_tagend));
+    stringcopy(p->value, value, msize);
+    
+    static Token html = { 
+        .type = tagend,
+    };
+    html.contents.end = p;
+
+    return (Token *)&html;
+}
+
+Token *mkselfclosed(int8 *value) {
+    int16 size, msize;
+    Selfclosed *p;
+    
+    size = stringlen(value);
+    msize = sizeof(struct s_selfclosed) + size;
+    p = (Selfclosed *)malloc($i msize);
+    assert(p);
+
+    zero($1 p, sizeof(struct s_selfclosed));
+    stringcopy(p->value, value, msize);
+    
+    static Token html = { 
+        .type = selfclosed,
+    };
+    html.contents.self = p;
+
+    return (Token *)&html;
+}
+
+Token *mktext(int8 *value) {
+    int16 size, msize;
+    Text *p;
+    
+    size = stringlen(value);
+    msize = sizeof(struct s_texttoken) + size;
+    p = (Text *)malloc($i msize);
+    assert(p);
+
+    zero($1 p, msize);
+    stringcopy(p->value, value, size);
+    
+    static Token html = { 
+        .type = text
+    };
+    html.contents.texttoken = p;
+
+    return (Token *)&html;
+}
+
+int main() {
+
+    int16 size;
+    Token *t;
+    Token *t1, *t2, *t3, *t4, *t5, *t6;
+
+    t1 = mktoken(tagstart,$1 "html");
+    t2 = mktoken(tagstart,$1 "body");
+    t3 = mktoken(text,$1 "Hello world");
+    t4 = mktoken(selfclosed,$1 "br");
+    t5 = mktoken(tagend,$1 "body");
+    t6 = mktoken(tagend,$1 "html");
+    
+    size = sizeof(Token)*6; 
+    t = (Token *)malloc(size);
+    assert(t);
+    zero( $1 t, size);
+
+    t[0] = *t1;
+    t[1] = *t2;
+    t[2] = *t3;
+    t[3] = *t4;
+    t[4] = *t5;
+    t[5] = *t6;
+
+    Tokens ts = {
+        .length = 6,
+        .ts = t,
+    };
+
+    printf("'%s'\n", showtokens(ts));
+    destroytokens(ts);
+
     return 0;
 }

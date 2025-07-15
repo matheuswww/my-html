@@ -50,10 +50,10 @@ typedef enum e_tokentype Tokentype;
 struct s_token {
   Tokentype type;
   union {
-    Text texttoken;
-    Tagstart start;
-    Tagend end;
-    Selfclosed self;
+    Text *texttoken;
+    Tagstart *start;
+    Tagend *end;
+    Selfclosed *self;
   } contents;
 };
 typedef struct s_token Token;
@@ -64,5 +64,15 @@ struct s_tokens {
 };
 typedef struct s_tokens Tokens;
 
+#define destroytoken(t) free(t);
+#define destroytokens(ts) void;
+
 int8 *showtoken(Token);
 int8 * showtokens(Tokens);
+
+/* Constructor */
+Token *mktoken(Tokentype,int8*);
+Token *mktext(int8*);
+Token *mktagstart(int8*);
+Token *mktagend(int8*);
+Token *mkselfclosed(int8*);

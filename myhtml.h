@@ -35,11 +35,11 @@ typedef unsigned long long int int64;
 
 #define sdestroy(s) free(s)
 
-// constructor funcions
+// constructor
 String *mkstring(int8*);
 
 String *scopy(String *s);
 Tuple get(String*);
 int16 stringlen(int8*);
 void stringcopy(int8*, int8*, int16);
-int main(int,char**);
+int main(void);
