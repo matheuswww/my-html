@@ -152,12 +152,16 @@ String *mkstring(int8 *str) {
     return p;
 }
 
-Token *mktoken(Tokentype type, int8 *value) {
+Token *mktoken(Garbage *g, Tokentype type, int8 *value) {
+    void *ptr;
+    Token *ret;
+
+    ret = (Token *)0;
     switch (type) {
-        case text: return mktext(value);
-        case tagstart: return mktagstart(value);
-        case tagend: return mktagend(value);
-        case selfclosed: return mkselfclosed(value);
+        case text: ret = mktext(value); break;
+        case tagstart: ret = mktagstart(value); break;
+        case tagend: ret = mktagend(value); break;
+        case selfclosed: ret = mkselfclosed(value); break;
         default:
             fprintf(stderr, "mktoken(): bad input\n");
             exit(-1);
@@ -165,7 +169,14 @@ Token *mktoken(Tokentype type, int8 *value) {
             break;
     }
 
-    return (Token *)0;
+    if (!ret) {
+        return (Token *)0;
+    }
+
+    ptr = ret->contents.texttoken;
+    addgc(g, ptr);
+
+    return ret;
 }
 
 Token *mktagstart(int8 *value) {
@@ -249,18 +260,67 @@ Token *mktext(int8 *value) {
     return (Token *)&html;
 }
 
+Garbage *mkgarbage() {
+    Garbage *p;
+    int16 size;
+
+    size = sizeof(struct s_garbage) * GCblocksize;
+    p = (Garbage *)malloc($i size);
+    assert(p);
+    zero($1 p, size);
+
+    *p->p = (void *)0;
+    p->capacity = GCblocksize;
+    p->size = 0;
+
+    return p;
+}
+
+void addgc(Garbage *g, void *ptr) {
+    int16 size, gcbs;
+    assert(g && ptr);
+
+    if(g->size >= g->capacity) {
+        gcbs = GCblocksize;
+        size = sizeof(struct s_garbage) * (g->capacity + gcbs);
+        g = (Garbage *)realloc(g, $i size);
+        assert(g);
+        g->capacity += GCblocksize;
+    }
+
+    g->p[g->size] = ptr;
+    g->size++;
+
+    return;
+}
+
+Garbage *gc(Garbage *g) {
+    int16 n;
+    Garbage *p;
+
+    for (n = g->size - 1; n; n--)
+        free(g->p[n]);
+    free(g);
+
+    p = mkgarbage();
+
+    return p;
+}
+
 int main() {
 
     int16 size;
     Token *t;
     Token *t1, *t2, *t3, *t4, *t5, *t6;
+    Garbage * garb;
 
-    t1 = mktoken(tagstart,$1 "html");
-    t2 = mktoken(tagstart,$1 "body");
-    t3 = mktoken(text,$1 "Hello world");
-    t4 = mktoken(selfclosed,$1 "br");
-    t5 = mktoken(tagend,$1 "body");
-    t6 = mktoken(tagend,$1 "html");
+    garb = mkgarbage();
+    t1 = mktoken(garb, tagstart,$1 "html");
+    t2 = mktoken(garb, tagstart,$1 "body");
+    t3 = mktoken(garb, text,$1 "Hello world");
+    t4 = mktoken(garb, selfclosed,$1 "br");
+    t5 = mktoken(garb, tagend,$1 "body");
+    t6 = mktoken(garb, tagend,$1 "html");
     
     size = sizeof(Token)*6; 
     t = (Token *)malloc(size);
@@ -280,7 +340,8 @@ int main() {
     };
 
     printf("'%s'\n", showtokens(ts));
-    destroytokens(ts);
+
+    gc(garb);
 
     return 0;
 }

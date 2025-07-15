@@ -8,6 +8,8 @@
 #include <errno.h>
 #include "utils.h"
 
+#define GCblocksize 1024;
+
 struct s_string {
   int16 length;
   int8 *cur;
@@ -20,6 +22,13 @@ struct s_tuple {
   int8 c;
 };
 typedef struct s_tuple Tuple;
+
+struct s_garbage {
+  int16 capacity;
+  int16 size;
+  void *p[];
+};
+typedef struct s_garbage Garbage;
 
 typedef unsigned char int8;
 typedef unsigned short int int16;
@@ -37,7 +46,10 @@ typedef unsigned long long int int64;
 
 // constructor
 String *mkstring(int8*);
+Garbage *mkgarbage(void);
 
+void addgc(Garbage *, void *);
+Garbage *gc(Garbage *);
 String *scopy(String *s);
 Tuple get(String*);
 int16 stringlen(int8*);

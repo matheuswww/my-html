@@ -65,13 +65,12 @@ struct s_tokens {
 typedef struct s_tokens Tokens;
 
 #define destroytoken(t) free(t);
-#define destroytokens(ts) void;
 
 int8 *showtoken(Token);
 int8 * showtokens(Tokens);
 
 /* Constructor */
-Token *mktoken(Tokentype,int8*);
+Token *mktoken(Garbage*, Tokentype,int8*);
 Token *mktext(int8*);
 Token *mktagstart(int8*);
 Token *mktagend(int8*);
