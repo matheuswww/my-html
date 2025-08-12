@@ -11,7 +11,7 @@
 #define GCblocksize 1024;
 
 struct s_string {
-  int16 length;
+  int16 length:16;
   int8 *cur;
   int8 data[];
 };
@@ -24,8 +24,8 @@ struct s_tuple {
 typedef struct s_tuple Tuple;
 
 struct s_garbage {
-  int16 capacity;
-  int16 size;
+  int16 capacity:16;
+  int16 size:16;
   void *p[];
 };
 typedef struct s_garbage Garbage;
@@ -48,6 +48,7 @@ typedef unsigned long long int int64;
 String *mkstring(int8*);
 Garbage *mkgarbage(void);
 
+void memorycopy(void*, void*, int16);
 void addgc(Garbage *, void *);
 Garbage *gc(Garbage *);
 String *scopy(String *s);

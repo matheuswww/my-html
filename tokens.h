@@ -22,19 +22,19 @@ struct s_tagstart {
 typedef struct s_tagstart Tagstart;
 
 struct s_tagend {
-  Tag type;
+  Tag type:3;
   int8 value[];
 };
 typedef struct s_tagend Tagend;
 
 struct s_selfclosed {
-  Tag type;
+  Tag type:3;
   int8 value[];
 };
 typedef struct s_selfclosed Selfclosed;
 
 struct s_texttoken {
-  Tag type;
+  Tag type:3;
   int8 value[];
 };
 typedef struct s_texttoken Text;
@@ -43,12 +43,12 @@ enum e_tokentype {
   text = 1,
   tagstart = 2,
   tagend = 3,
-  selfclosed = 4
+  selfclosed = 4  
 };
 typedef enum e_tokentype Tokentype;
 
 struct s_token {
-  Tokentype type;
+  Tokentype type:3;
   union {
     Text *texttoken;
     Tagstart *start;
@@ -59,19 +59,27 @@ struct s_token {
 typedef struct s_token Token;
 
 struct s_tokens {
-  int16 length;
+  int16 length:16;
   Token *ts;
 };
 typedef struct s_tokens Tokens;
 
+struct s_ttuple {
+  Tokens *xs;
+  Token x;
+};
+typedef struct s_ttuple TTuple;
+
 #define destroytoken(t) free(t);
 
-int8 *showtoken(Token);
-int8 * showtokens(Tokens);
+int8 *showtoken(Garbage*, Token);
+int8 *showtokens(Garbage *g, Tokens);
+Tokens *tcopy(Garbage*, Tokens*);
+TTuple tget(Garbage*, Tokens*);
 
 /* Constructor */
 Token *mktoken(Garbage*, Tokentype,int8*);
-Token *mktext(int8*);
-Token *mktagstart(int8*);
-Token *mktagend(int8*);
-Token *mkselfclosed(int8*);
+Token *mktext(Garbage *g, int8*);
+Token *mktagstart(Garbage *g, int8*);
+Token *mktagend(Garbage *g, int8*);
+Token *mkselfclosed(Garbage *g, int8*);
