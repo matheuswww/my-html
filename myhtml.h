@@ -1,3 +1,4 @@
+#pragma
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <unistd.h>
@@ -53,6 +54,7 @@ void addgc(Garbage *, void *);
 Garbage *gc(Garbage *);
 String *scopy(String *s);
 Tuple get(String*);
+int8 peek(String*);
 int16 stringlen(int8*);
 void stringcopy(int8*, int8*, int16);
 int main(void);

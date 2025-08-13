@@ -232,6 +232,15 @@ TTuple tget(Garbage *g, Tokens *old) {
         return err;
 }
 
+int8 peek(String *s) {
+    assert(s);
+
+    if (!s->length)
+        return (int8 )0;
+    else
+        return *s->cur;
+}
+
 String *mkstring(int8 *str) {
     String *p;
     int16 n, size;
@@ -421,7 +430,6 @@ Tokens *mktokens(Garbage *g) {
     int16 size;
     Tokens *p;
 
-    assert(g);
     size = sizeof(struct s_tokens);
     p = (Tokens *)malloc($i size); 
     if(!p)
@@ -431,6 +439,8 @@ Tokens *mktokens(Garbage *g) {
     p->length = 0;
     p->ts = (Token *)0;
     addgc(g, p);
+    if (g)
+        addgc(g, p);
 
     return p;
 }

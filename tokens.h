@@ -1,3 +1,5 @@
+#pragma once
+
 /* tokens.h */
 typedef unsigned char int8;
 typedef unsigned short int int16;
