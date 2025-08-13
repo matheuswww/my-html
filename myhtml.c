@@ -2,12 +2,54 @@
 #include "myhtml.h"
 #include "tokens.h"
 
+Tokens *tcons(Garbage *g, Token x, Tokens* xs) {
+    int16 size;
+    Token *x_, *ts;
+    Tokens *xs_;
+
+    assert(g && x.type && xs);
+    switch(x.type) {
+        case text:       x_ = mktoken(g, x.type, x.contents.texttoken->value); break;
+        case tagstart:   x_ = mktoken(g, x.type, x.contents.start->value); break;
+        case tagend:     x_ = mktoken(g, x.type, x.contents.end->value); break;
+        case selfclosed: x_ = mktoken(g, x.type, x.contents.self->value); break;
+        default: x_ = mktoken(g, x.type, x.contents.texttoken->value);
+    }
+    if(!x_)
+        return (Tokens *)0;
+    if (!xs->length) {
+        xs_ = mktokens(g);
+        xs_->length = 1;
+        size = sizeof(struct s_token);
+        ts = (Token *)malloc($i size);
+        zero($1 ts, size);
+        *ts = *x_;
+        xs_->ts = ts;
+        addgc(g, xs);
+        
+        return xs_;
+    }
+
+    xs_ = tcopy(g, xs);
+    xs_->length++;
+    size = sizeof(struct s_token) * xs_->length;
+    ts = (Token *)realloc(xs->ts, size);
+    addgc(g, xs);
+    if(!ts)
+        return (Tokens *)0;
+    xs_->ts = ts;
+    xs_->ts[xs->length] = *x_;
+
+    return xs_;
+}
+
 int8 *showtokens(Garbage *g, Tokens ts) {
     int8 *p, *cur;
     static int8 buf[20480];
     int16 total, n, i;
     Token *t;
 
+    assert(g && ts.length);
     total = 0;
     cur = buf;
     zero(buf, sizeof(buf));
@@ -164,7 +206,13 @@ TTuple tget(Garbage *g, Tokens *old) {
     if (!old->length)
      goto fail;
 
-    x = mktoken(g, old->ts->type, old->ts->contents.start->value);
+    switch(old->ts->type) {
+        case text:       x = mktoken(g, old->ts->type, old->ts->contents.texttoken->value); break;
+        case tagstart:   x = mktoken(g, old->ts->type, old->ts->contents.start->value); break;
+        case tagend:     x = mktoken(g, old->ts->type, old->ts->contents.end->value); break;
+        case selfclosed: x = mktoken(g, old->ts->type, old->ts->contents.self->value); break;
+        default: x = mktoken(g, old->ts->type, old->ts->contents.texttoken->value);
+    }
     new = tcopy(g, old);
     if (!new)
         goto fail;
@@ -249,6 +297,7 @@ Token *mktagstart(Garbage *g, int8 *value) {
     ret->type = tagstart;
     ret->contents.start = p;
     addgc(g, ret);
+
     return ret;
 }
 
@@ -368,6 +417,42 @@ Garbage *gc(Garbage *g) {
     return p;
 }
 
+Tokens *mktokens(Garbage *g) {
+    int16 size;
+    Tokens *p;
+
+    assert(g);
+    size = sizeof(struct s_tokens);
+    p = (Tokens *)malloc($i size); 
+    if(!p)
+        return (Tokens *)0;
+    zero($1 p, size);
+
+    p->length = 0;
+    p->ts = (Token *)0;
+    addgc(g, p);
+
+    return p;
+}
+
+int main() {
+    Token *x, *x2;
+    Tokens *xs;
+    Garbage *g;
+
+    g = mkgarbage();
+    xs = mktokens(g);
+    x = mktoken(g, tagstart, $1 "html");
+    x2 = mktoken(g, selfclosed,$1 "br");
+    xs = tcons(g, *x2, xs);
+    xs = tcons(g, *x, xs);
+
+    printf("'%s'\n", showtokens(g, *xs));
+
+    return 0;
+}
+
+/*
 int main() {
 
     int16 size;
@@ -410,3 +495,4 @@ int main() {
 
     return 0;
 }
+*/

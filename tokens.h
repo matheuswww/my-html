@@ -76,6 +76,7 @@ int8 *showtoken(Garbage*, Token);
 int8 *showtokens(Garbage *g, Tokens);
 Tokens *tcopy(Garbage*, Tokens*);
 TTuple tget(Garbage*, Tokens*);
+Tokens *tcons(Garbage*, Token, Tokens*);
 
 /* Constructor */
 Token *mktoken(Garbage*, Tokentype,int8*);
@@ -83,3 +84,4 @@ Token *mktext(Garbage *g, int8*);
 Token *mktagstart(Garbage *g, int8*);
 Token *mktagend(Garbage *g, int8*);
 Token *mkselfclosed(Garbage *g, int8*);
+Tokens *mktokens(Garbage*);
