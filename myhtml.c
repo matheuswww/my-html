@@ -1,6 +1,5 @@
 /* myhtml.c */
-#include "myhtml.h"
-#include "tokens.h"
+#include "lexer.h"
 
 Tokens *tcons(Garbage *g, Token x, Tokens* xs) {
     int16 size;
@@ -35,7 +34,7 @@ Tokens *tcons(Garbage *g, Token x, Tokens* xs) {
     size = sizeof(struct s_token) * xs_->length;
     ts = (Token *)realloc(xs->ts, size);
     addgc(g, xs);
-    if(!ts)
+    if(!ts) 
         return (Tokens *)0;
     xs_->ts = ts;
     xs_->ts[xs->length] = *x_;
@@ -135,7 +134,7 @@ Tokens *tcopy(Garbage *g, Tokens *old) {
     memorycopy(t, old->ts, size);
     new->ts = t;
 
-    addgc(g, old->ts);
+    //addgc(g, old->ts);
     addgc(g, old);
 
     return new;
@@ -172,11 +171,10 @@ String *scopy(String *s) {
 Tuple get(String *s) {
     String *new;
     int8 c;
-
     assert(s);
     if(!s->length)
-        goto fail;
-
+    goto fail;
+    
     c = *s->cur;
     new = scopy(s);
     if (!new)
@@ -261,10 +259,9 @@ String *mkstring(int8 *str) {
 }
 
 Token *mktoken(Garbage *g, Tokentype type, int8 *value) {
-    void *ptr;
     Token *ret;
-
     ret = (Token *)0;
+
     switch (type) {
         case text: ret = mktext(g, value); break;
         case tagstart: ret = mktagstart(g, value); break;
@@ -280,9 +277,6 @@ Token *mktoken(Garbage *g, Tokentype type, int8 *value) {
     if (!ret) {
         return (Token *)0;
     }
-
-    ptr = ret->contents.texttoken;
-    addgc(g, ptr);
 
     return ret;
 }
@@ -396,8 +390,20 @@ Garbage *mkgarbage() {
 }
 
 void addgc(Garbage *g, void *ptr) {
-    int16 size, gcbs;
+    int16 size, gcbs, n;
     assert(g && ptr);
+    bool exists;
+
+    exists = false;
+    for (n = 0; n < g->size; n++)
+        if (g->p[n] == ptr) {
+            exists = true;
+            break;
+        }
+
+    if (exists)
+        return;
+
 
     if(g->size >= g->capacity) {
         gcbs = GCblocksize;
@@ -418,7 +424,8 @@ Garbage *gc(Garbage *g) {
     Garbage *p;
 
     for (n = g->size - 1; n; n--)
-        free(g->p[n]);
+       if(g->p[n])
+            free(g->p[n]);
     free(g);
 
     p = mkgarbage();
@@ -446,6 +453,28 @@ Tokens *mktokens(Garbage *g) {
 }
 
 int main() {
+    Garbage *g;
+    String *s;
+    Tokens *xs;
+
+    g = mkgarbage();
+    if (!g) {
+      printf("No G\n");
+      return -1;  
+    }
+    s = mkstring($1 "<html><body>abc<br />cde</body></html>");
+    xs = lexer(s);
+    if (!xs) {
+        printf("No XS!\n");
+        return -1;
+    }
+    printf("'%s'\n", showtokens(g, *xs));
+
+    return 0;
+}
+
+/*
+int main() {
     Token *x, *x2;
     Tokens *xs;
     Garbage *g;
@@ -461,6 +490,7 @@ int main() {
 
     return 0;
 }
+*/
 
 /*
 int main() {

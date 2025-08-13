@@ -19,7 +19,7 @@ State *mkstate() {
 
 Tokens *lexer(String* s) {
   Garbage *g;
-  Tokens *xs;
+  Tokens *xs, *xs_;
   State *state;
 
   assert(s);
@@ -27,7 +27,7 @@ Tokens *lexer(String* s) {
     return (Tokens *)0;
   
   g = mkgarbage();
-  xs = mktokens((Garbage *)0);
+  xs = mktokens(g);
   if (!g) {
     if (xs)
       free(xs);
@@ -40,9 +40,13 @@ Tokens *lexer(String* s) {
   }
   state = mkstate();
   state->stage = newtoken;
+
   addgc(g, state);
 
-  return lexer_(g, s, xs, state);
+  xs_ = lexer_(g, s, xs, state);
+  g = gc(g);
+
+  return xs_;
 }
 
 Tokens *lexer_(Garbage *g, String *s, Tokens *xs, State *state) {
@@ -52,13 +56,13 @@ Tokens *lexer_(Garbage *g, String *s, Tokens *xs, State *state) {
   String *s_;
   Tokentype type;
   Tokens *xs_;
-
+  
   tuple = get(s);
   c = tuple.c;
   s_ = tuple.s;
-  addgc(g, s);
   if (!c && !s_) {
-    /* we are done */
+    addgc(g, s);
+    return xs;
   }
 
   switch (state->stage) {
@@ -79,28 +83,51 @@ Tokens *lexer_(Garbage *g, String *s, Tokens *xs, State *state) {
       zero(state->buf, 256);
       state->cur = state->buf;
       state->stage = readtoken;
+      if (type == text) {
+        *state->cur = c;
+        state->cur++;
+      }
       return lexer_(g, s_, xs, state);
 
       break;
 
     case readtoken:
+      if (state->type == text) {
+        if ((!s_->length) || (cc = peek(s_)) == '<') {
+          *state->cur = c;
+          state->cur++;
+          t = mktoken(g, state->type, state->buf);
+          if (!t)
+            return (Tokens *)0;
+          xs_ = tcons(g, *t, xs);
+          if (!xs_)
+            return (Tokens *)0; 
+          addgc(g, xs);
+          zero(state->buf, 256);
+          state->stage = newtoken;
+          state->cur = state->buf;
+
+          return lexer_(g, s_, xs_, state);
+        }
+      }
       if (c == '/')
         return lexer_(g, s_, xs, state);
-      if (c == ' ') {
-        cc = peek(s);
+      if ((c == ' ') && (state->type != text)) { 
+        cc = peek(s_);
         if (cc == '/') {
           state->type = selfclosed;
         }
 
-        return lexer_(g, s, xs, state);
-      } else if ((c == '>') || (state->type != text)) {
-        if (state->type == tagstart || (state->type == tagend) || (state->type == selfclosed)) {
+        return lexer_(g, s_, xs, state);
+      } else if ((c == '>')) {
+        if ((state->type == tagstart) || (state->type == tagend) || (state->type == selfclosed)) {
           t = mktoken(g, state->type, state->buf);
           if (!t)
-            return (Token *)0;
+            return (Tokens *)0;
           xs_ = tcons(g, *t, xs);
           if (!xs_)
-            return (Token *)0;
+            return (Tokens *)0;
+          addgc(g, xs);
           zero(state->buf, 256);
           state->stage = newtoken;
           state->cur = state->buf;
@@ -109,17 +136,18 @@ Tokens *lexer_(Garbage *g, String *s, Tokens *xs, State *state) {
         }
       }
 
-      if ((state->cur-&state->buf) >= 254)
-        return (Token *)0;
+      if (((void*)state->cur-(void*)&state->buf) >= 254)
+        return (Tokens *)0;
 
-      state->cur++;
       *state->cur = c;
+      state->cur++;
       return lexer_(g, s_, xs, state);
 
       break;
 
     default:
-      return (Tokens *)0;
-      break;
+     break;
   }
+
+  return (Tokens *)0;
 }
