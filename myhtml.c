@@ -1,5 +1,38 @@
 /* myhtml.c */
 #include "lexer.h"
+#include "myhtml.h"
+#include "parser.h"
+
+Map tagmap[] = {
+  { $1 "html", html },
+  { $1 "body", body },
+  { $1 "b", b },
+  { $1 "br", br }
+};
+
+bool stringcompare(int8 *x, int8 *y) {
+    int16 max, n;
+    int8 *px, *py;
+    max = min(
+    stringlen(x),
+    stringlen(y)
+    );
+
+    for (n=max, px =x, py=y; n; n--, py++, px++)
+        if(*px != *py)
+            return false;
+
+    return true;
+}
+
+Tag findtype(int8 *str) {
+    int16 n;
+    for(n=0; n < sizeof(tagmap) / sizeof(tagmap[0]); n++)
+        if (stringcompare(tagmap[n].str, str))
+            return tagmap[n].tag;
+
+    return (Tag )0;
+}
 
 Tokens *tcons(Garbage *g, Token x, Tokens* xs) {
     int16 size;
@@ -96,7 +129,6 @@ int8 *showtoken(Garbage *g, Token t) {
 int16 stringlen(int8 *str) {
     int16 n;
     int8 *p;
-
     assert(str);
     for(p = str, n = 0; *p; p++, n++);
     
@@ -293,7 +325,8 @@ Token *mktagstart(Garbage *g, int8 *value) {
 
     zero($1 p, msize);
     stringcopy(p->value, value, size);
-    
+    p->type = findtype(p->value);
+
     size = sizeof(struct s_token);
     ret = (Token *)malloc($i size);
     zero($1 ret, size);
@@ -313,6 +346,7 @@ Token *mktagend(Garbage *g, int8 *value) {
     msize = sizeof(struct s_tagend) + size;
     p = (Tagend *)malloc($i msize);
     assert(p);
+    p->type = findtype(p->value);
 
     zero($1 p, sizeof(struct s_tagend));
     stringcopy(p->value, value, size);
@@ -339,6 +373,7 @@ Token *mkselfclosed(Garbage *g, int8 *value) {
 
     zero($1 p, sizeof(struct s_selfclosed));
     stringcopy(p->value, value, size);
+    p->type = findtype(p->value);
     
     size = sizeof(struct s_token);
     ret = (Token *)malloc($i size);
@@ -354,14 +389,14 @@ Token *mktext(Garbage *g, int8 *value) {
     int16 size, msize;
     Text *p;
     Token *ret;
-    
     size = stringlen(value);
     msize = sizeof(struct s_texttoken) + size;
     p = (Text *)malloc($i msize);
     assert(p);
-
+    
     zero($1 p, msize);
     stringcopy(p->value, value, size);
+    p->type = findtype(p->value);
     
     size = sizeof(struct s_token);
     ret = (Token *)malloc($i size);
@@ -369,7 +404,6 @@ Token *mktext(Garbage *g, int8 *value) {
     ret->type = text;
     ret->contents.texttoken = p;
     addgc(g, ret);
-
     return ret;
 }
 
@@ -453,9 +487,12 @@ Tokens *mktokens(Garbage *g) {
 }
 
 int main() {
-    Garbage *g;
     String *s;
     Tokens *xs;
+    Garbage *g;
+    Token *t;
+    Stack *old, *new, *new1;
+    STuple *tuple;
 
     g = mkgarbage();
     if (!g) {
@@ -468,8 +505,32 @@ int main() {
         printf("No XS!\n");
         return -1;
     }
-    printf("'%s'\n", showtokens(g, *xs));
+    t = xs->ts;
+    printf("%s\n", (*(t)).contents.start->value);
+    old = mkstack(1);
+    old->fun = findfun(*t);
+    memorycopy($1 &old->token, $1 t, sizeof(struct s_token));
+    new1 = push(g, old, *(t+1));
+    if (new1) {
+        new = push(g, new1, *(t+2));
+        printstack(new);
+    } else
+        printf("ERR: push() failed \n");
 
+    tuple = apop(g, new, body);
+    if (!tuple->x.contents.start->type)
+        printf("apop() failed\n");
+    else {
+        printf("STuple type = %d\n", tuple->x.contents.self->type);
+        if (tuple->xs) {
+            printf("\n\n");
+            printstack(tuple->xs);
+            addgc(g, tuple->xs);
+        }
+    }
+
+    gc(g);
+    
     return 0;
 }
 

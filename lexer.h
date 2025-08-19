@@ -1,3 +1,4 @@
+#pragma once
 #include "tokens.h"
 
 enum e_stage {

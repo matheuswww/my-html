@@ -1,3 +1,4 @@
+#pragma once
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <unistd.h>
@@ -17,11 +18,11 @@ struct s_string {
 };
 typedef struct s_string String;
 
-struct s_tuple {
+struct tuple {
   String *s;
   int8 c;
 };
-typedef struct s_tuple Tuple;
+typedef struct tuple Tuple;
 
 struct s_garbage {
   int16 capacity:16;
@@ -43,6 +44,7 @@ typedef unsigned long long int int64;
 #define $i (int)
 
 #define sdestroy(s) free(s)
+#define min(x,y) ((x) < (y)) ? (x) : (y)
 
 // constructor
 String *mkstring(int8*);
@@ -56,4 +58,5 @@ Tuple get(String*);
 int8 peek(String*);
 int16 stringlen(int8*);
 void stringcopy(int8*, int8*, int16);
+bool stringcompare(int8*, int8*);
 int main(void);

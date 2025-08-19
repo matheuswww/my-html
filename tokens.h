@@ -73,6 +73,12 @@ struct s_ttuple {
 };
 typedef struct s_ttuple TTuple;
 
+struct s_map {
+  int8 *str;
+  Tag tag;
+};
+typedef struct s_map Map;
+
 #define destroytoken(t) free(t);
 
 int8 *showtoken(Garbage*, Token);
@@ -88,3 +94,4 @@ Token *mktagstart(Garbage *g, int8*);
 Token *mktagend(Garbage *g, int8*);
 Token *mkselfclosed(Garbage *g, int8*);
 Tokens *mktokens(Garbage*);
+Tag findtype(int8*);
