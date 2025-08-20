@@ -499,12 +499,19 @@ int main() {
       printf("No G\n");
       return -1;  
     }
-    s = mkstring($1 "<html><body>abc<br />cde</body></html>");
+    s = mkstring($1 "<html><body>abc<br />cde</body><b>sjdlkf</b></html>");
     xs = lexer(s);
     if (!xs) {
         printf("No XS!\n");
         return -1;
     }
+    assert(xs->length);
+    old = parse(xs);
+    assert(old);
+    assert(old->length);
+    printstack(old);
+    return 0;
+
     t = xs->ts;
     printf("%s\n", (*(t)).contents.start->value);
     old = mkstack(1);
@@ -515,7 +522,13 @@ int main() {
         new = push(g, new1, *(t+2));
         printstack(new);
     } else
-        printf("ERR: push() failed \n");
+    printf("ERR: push() failed \n");
+
+ 
+    if (isopen(new, body))
+        printf("<body> is on the stack\n");
+    else
+        printf("No <body>\n");
 
     tuple = apop(g, new, body);
     if (!tuple->x.contents.start->type)
@@ -528,6 +541,11 @@ int main() {
             addgc(g, tuple->xs);
         }
     }
+    
+    if (isopen(tuple->xs, body))
+        printf("<body> is on the stack\n");
+    else
+        printf("No <body>\n");
 
     gc(g);
     

@@ -37,3 +37,6 @@ Stack *findlast(Stack*);
 Stack *stackcopy(Garbage*,Stack*);
 String *id(String *s,Token*);
 function findfun(Token);
+bool isopen(Stack*,Tag);
+Stack *parse(Tokens*);
+Stack *parse_(Garbage*, Tokens*, Stack*);

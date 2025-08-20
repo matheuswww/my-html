@@ -37,7 +37,7 @@ void printstack(Stack *s) {
   int8* value = (int8 *)0;
 
   assert(s && s->length);
-  printf("Stack of size: %d:\n", s->length);
+
   for (n = 0, p=s; n < s->length; n++, p = p->next) {
     value = (int8 *)0;
     if (p->token.type) { 
@@ -56,6 +56,7 @@ void printstack(Stack *s) {
         break; 
       }
     }
+    /*
     printf(
       "entry at 0x%x\n"
       " .token = '%s'\n"
@@ -64,7 +65,10 @@ void printstack(Stack *s) {
         $i p, (value)?value:$1 "",
         $i p->next, $i p->prev
     );
+    */
+   printf("<%s>", value);
   }
+  printf("\n");
 
   return;
 }
@@ -219,62 +223,76 @@ Stack *stackcopy(Garbage *g, Stack *s) {
   return  new;
 }
 
-/*
-Stack *stackcopy(Stack *s) {
-  Stack *first, *p, *new, *latest;
+bool isopen(Stack *s, Tag type) {
+  int16 n;
+  Stack *p;
+  bool ret;
 
   assert(s);
-  if (empty(s)) {};
-    return mkstack();
-  
-  latest = (Stack *)0;
-  first = (Stack *)0;
-  for (p = s; p; p = p->next) {
-    if (!first)
-      first = new;
-    new = mkstack();
-    new->fun = p->fun;
-    memorycopy($1 &new->token,$1 &p->token, sizeof(struct s_token));
-    new->prev = latest;
-    if (latest)
-      latest->next = new;
-    latest = new;
-  }
+  ret = false;
 
-  return first;
+  if (!s->length)
+    return false;
+  for (n = 0, p = s; n < s->length; n++, p = p->next)
+    if (type == p->token.contents.start->type) {
+      ret = true;
+      break;
+    }
 
+  return ret;
 }
 
-Stack *push(Garbage *g, Stack *s, Token t) {
-  Stack *s_, *p, *last;
-  
-  assert(s && t.type);
-  if (g)
-    addgc(g, s);
+Stack *parse(Tokens* xs) {
+  Garbage *g;
+  Stack *s, *s_;
+  TTuple tuple;
 
-  if (empty(s)) { 
-    s_ = mkstack();
-    
-    last = s_;
-  } else {
-    s_ = stackcopy(s);
-    last = findlast(s_);
-  }
-  if (s_ == last) {
-    p = s_;
-    p->prev = (Stack *)0;
-    last->next = p;
-  } else {
-    p = mkstack();
-    p->prev = last;
-    last->next = p;
-  }
-  // p->next = (Stack *)0;
-  memorycopy($1 &p->token, $1 &t, sizeof(struct s_token));
-  p->fun = findfun(t);
-  if(!p->fun)
-    p->fun = &id;
-    
+  assert(xs && xs->length);
+  g = mkgarbage();
+  s = mkstack(1);
+  assert(s && s->length);
+
+  tuple = tget(g, xs);
+  if(!tuple.xs)
+    return (Stack *)0;
+
+  assert(tuple.x.type == tagstart);
+  
+  memorycopy(&s->token, &tuple.x, sizeof(struct s_token));
+  if (!tuple.xs->length)
+    return s;
+
+  s_ = parse_(g, tuple.xs, s);
+  if (!s_)
+    return s;
+
+  gc(g);
+
   return s_;
 }
-*/
+
+Stack *parse_(Garbage *g, Tokens *xs, Stack *s) {
+  Tokens *xs_;
+  Stack *s_, *s__;
+  TTuple tuple;
+
+  assert(s && s->length);
+
+  if (!xs->length)
+    return s;
+
+  tuple = tget(g, xs);
+  if (!tuple.xs)
+    return (Stack *)0;
+
+  xs_ = tuple.xs;
+  s_ = push(g, s, tuple.x);
+  if (!s_)
+    return (Stack *)0;
+
+  if (tuple.x.type == tagstart)
+    return parse_(g, xs_, s_);
+  else
+    s__ = stackcopy(g, s);  
+  return parse_(g, xs_, s__);
+}
